@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUpdatePostFormRequest;
 use App\Models\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
@@ -39,7 +40,21 @@ class PostController extends Controller
      */
     public function store(StoreUpdatePostFormRequest $request)
     {
-        $post = $request->user()->posts()->create($request->all());
+        $data = $request->all();
+
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            $name = Str::kebab($request->title);
+            $extension = $request->image->extension();
+            $nameImage = "{$name}.$extension";
+            $data['image'] = $nameImage;
+
+            $upload = $request->image->storeAs('posts', $nameImage);
+
+            if (!$upload)
+                return redirect()->back()->with('errors', ['Falha no Upload da Imagem']);
+        }
+
+        $post = $request->user()->posts()->create($data);
 
         return redirect()->back()->withSuccess('Cadastro realizado com sucesso!');
     }
